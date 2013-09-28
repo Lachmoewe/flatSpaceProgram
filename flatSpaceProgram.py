@@ -12,16 +12,43 @@ class SpaceObject():
                 self.gravityVec=[0.0,0.0]
                 self.mass=1
                 self.draw=True
+                self.gravInfluence=[]
         
-        def addGravityPull(self,vec):
-                self.gravityVec[0]=self.gravityVec[0]+vec[0]
-                self.gravityVec[1]=self.gravityVec[1]+vec[1]
+        def addGravityInfluence(self, thing):
+                self.gravInfluence.append(thing)
+
+        def getGravityForce(self, position):
+                forceVector = [0.0, 0.0]
+                direction = [0.0, 0.0]
+                direction[0] = position[0] - self.position[0]
+                direction[1] = position[1] - self.position[1]
+                distance = math.pow(direction[0],2) + math.pow(direction[1],2)
+                force = self.mass/distance
+                distance = math.sqrt(distance)
+                forceVector[0] = -(direction[0]/distance)*force
+                forceVector[1] = -(direction[1]/distance)*force
+                return forceVector
+        
+        def calcGravityVec(self):
+                for thing in self.gravInfluence:
+                        forceVector = [0.0, 0.0]
+                        direction = [0.0, 0.0]
+                        direction[0] = thing.position[0] - self.position[0]
+                        direction[1] = thing.position[1] - self.position[1]
+                        distance = math.pow(direction[0],2) + math.pow(direction[1],2)
+                        force = thing.mass/distance
+                        distance = math.sqrt(distance)
+                        forceVector[0] = (direction[0]/distance)*force
+                        forceVector[1] = (direction[1]/distance)*force
+                        self.gravityVec[0]=self.gravityVec[0]+forceVector[0]
+                        self.gravityVec[1]=self.gravityVec[1]+forceVector[1]
         
         def calcAcceleration(self):
                 self.acceleration[0] = self.gravityVec[0]
                 self.acceleration[1] = self.gravityVec[1]
         
         def tick(self):
+                self.calcGravityVec()
                 self.calcAcceleration()
                 self.speed[0] = self.speed[0] + self.acceleration[0]
                 self.speed[1] = self.speed[1] + self.acceleration[1]
@@ -67,27 +94,10 @@ class Planet(SpaceObject):
         def __init__(self, imageFile='data/ball.gif'):
                 SpaceObject.__init__(self, imageFile)
 
-        def getGravityForce(self, position):
-                forceVector = [0.0, 0.0]
-                direction = [0.0, 0.0]
-                direction[0] = position[0] - self.position[0]
-                direction[1] = position[1] - self.position[1]
-                distance = math.pow(direction[0],2) + math.pow(direction[1],2)
-                force = self.mass/distance
-                distance = math.sqrt(distance)
-                forceVector[0] = -(direction[0]/distance)*force
-                forceVector[1] = -(direction[1]/distance)*force
-                return forceVector
 
-def getDistance(vec1, vec2):
-        distanceVec=[0.0, 0.0]
-        distanceVec[0]=vec2[0]-vec1[0]
-        distanceVec[1]=vec2[1]-vec1[1]
-        distance=math.sqrt(math.pow(distanceVec[0],2)+math.pow(distanceVec[1],2))
-        return distance
 
 pygame.init()
-size = width, height = 1000, 800
+size = width, height = 1600, 1000
 black = 0, 0, 0
 
 screen = pygame.display.set_mode(size)
@@ -101,17 +111,43 @@ spaceShip.engineVec=[0.0, 0.0]
 spaceShip.enginePower=50
 
 moon=Planet("data/planet/moon.png")
-moon.position=[500.0, 500.0]
-moon.speed=[0.325,-0.325]
+moon.position=[200.0, 500.0]
+moon.speed=[0.325,0.25]
 moon.mass=5
 
 blue=Planet("data/planet/blue.png")
 blue.mass=30
-blue.position=[400.0,400.0]
+blue.position=[100.0,400.0]
+blue.speed=[0.0, 0.4]
 
+sun=Planet("data/star/helios1.png")
+sun.mass=100
+sun.position=[800.0,500.0]
 clock=pygame.time.Clock()
 
+spaceShip.addGravityInfluence(blue)
+spaceShip.addGravityInfluence(moon)
+spaceShip.addGravityInfluence(sun)
+moon.addGravityInfluence(blue)
+moon.addGravityInfluence(sun)
+blue.addGravityInfluence(sun)
+
 myfont=pygame.font.SysFont("Monospace", 20)
+
+def getDistance(vec1, vec2):
+        distanceVec=[0.0, 0.0]
+        distanceVec[0]=vec2[0]-vec1[0]
+        distanceVec[1]=vec2[1]-vec1[1]
+        distance=math.sqrt(math.pow(distanceVec[0],2)+math.pow(distanceVec[1],2))
+        return distance
+
+def HUD(text,position,screen): 
+        lineList=text.split('\n')
+        offset=0
+        for line in lineList:
+                HUD=myfont.render(line,1,(255,0,0))
+                screen.blit(HUD,(position[0],position[1]+offset))
+                offset=offset+15
 while 1:
         for event in pygame.event.get():
                 if event.type == pygame.QUIT: sys.exit()
@@ -136,26 +172,23 @@ while 1:
                         if event.key==100:
                                 spaceShip.unsetThrust('r')
         
-        spaceShip.addGravityPull( blue.getGravityForce( spaceShip.position ) )
-        spaceShip.addGravityPull( moon.getGravityForce( spaceShip.position ) )
-        moon.addGravityPull( blue.getGravityForce( moon.position ) )
         spaceShip.tick()
         moon.tick()
         blue.tick()
-
-        #print round(getDistance(moon.position, blue.position))
+        sun.tick()
 
         screen.fill(black)
+        screen.blit(sun.image, sun.rect)
         screen.blit(blue.image, blue.rect)
         screen.blit(moon.image, moon.rect)
         screen.blit(spaceShip.image, spaceShip.rect)
         
         absSpeed=round(math.sqrt(math.pow(spaceShip.speed[0],2)+math.pow(spaceShip.speed[1],2))*60,2)
-        speed=myfont.render("Speed: "+str(absSpeed),1,(255,0,0))
-        position=myfont.render("Pos: ("+str(round(spaceShip.position[0],1))+","+str(round(spaceShip.position[1],1))+")",1,(255,0,0))
-        screen.blit(speed,(10,10))
-        screen.blit(position,(10,40))
-        
+        HUDtext='''Speed: '''+str(absSpeed)+'''\n
+SpaceShip Pos: (''' + str(round(spaceShip.position[0],1)) + "," + str(round(spaceShip.position[1],1)) + ''')\n
+blue<->moon: ''' + str(round(getDistance(blue.position,moon.position),0)) + '''\n
+sun<->blue: ''' +str(round(getDistance(sun.position,blue.position),0))
+        HUD(HUDtext,[10,10],screen)
         clock.tick(60)
         pygame.display.flip()
 
