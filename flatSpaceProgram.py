@@ -152,7 +152,7 @@ while 1:
         
         absSpeed=round(math.sqrt(math.pow(spaceShip.speed[0],2)+math.pow(spaceShip.speed[1],2))*60,2)
         speed=myfont.render("Speed: "+str(absSpeed),1,(255,0,0))
-        position=myfont.render("Pos: ("+str(round(spaceShip.position[0],1))+","+str(round(spaceShip.position[0],1))+")",1,(255,0,0))
+        position=myfont.render("Pos: ("+str(round(spaceShip.position[0],1))+","+str(round(spaceShip.position[1],1))+")",1,(255,0,0))
         screen.blit(speed,(10,10))
         screen.blit(position,(10,40))
         
