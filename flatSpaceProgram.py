@@ -87,7 +87,7 @@ def getDistance(vec1, vec2):
         return distance
 
 pygame.init()
-size = width, height = 800, 600
+size = width, height = 1000, 800
 black = 0, 0, 0
 
 screen = pygame.display.set_mode(size)
@@ -149,9 +149,10 @@ while 1:
         screen.blit(blue.image, blue.rect)
         screen.blit(moon.image, moon.rect)
         screen.blit(spaceShip.image, spaceShip.rect)
-
-        speed=myfont.render("Speed: "+str(spaceShip.speed),1,(255,0,0))
-        position=myfont.render("Pos: "+str(spaceShip.position),1,(255,0,0))
+        
+        absSpeed=round(math.sqrt(math.pow(spaceShip.speed[0],2)+math.pow(spaceShip.speed[1],2))*60,2)
+        speed=myfont.render("Speed: "+str(absSpeed),1,(255,0,0))
+        position=myfont.render("Pos: ("+str(round(spaceShip.position[0],1))+","+str(round(spaceShip.position[0],1))+")",1,(255,0,0))
         screen.blit(speed,(10,10))
         screen.blit(position,(10,40))
         
