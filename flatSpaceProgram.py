@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import sys, pygame, math
+import sys, pygame, math, thread
 class SpaceObject():
         def __init__(self, imageFile="data/vessel/basic/vessel.png"):
                 self.imageFile=imageFile
@@ -17,18 +17,6 @@ class SpaceObject():
         def addGravityInfluence(self, thing):
                 self.gravInfluence.append(thing)
 
-        def getGravityForce(self, position):
-                forceVector = [0.0, 0.0]
-                direction = [0.0, 0.0]
-                direction[0] = position[0] - self.position[0]
-                direction[1] = position[1] - self.position[1]
-                distance = math.pow(direction[0],2) + math.pow(direction[1],2)
-                force = self.mass/distance
-                distance = math.sqrt(distance)
-                forceVector[0] = -(direction[0]/distance)*force
-                forceVector[1] = -(direction[1]/distance)*force
-                return forceVector
-        
         def calcGravityVec(self):
                 for thing in self.gravInfluence:
                         forceVector = [0.0, 0.0]
@@ -46,16 +34,25 @@ class SpaceObject():
         def calcAcceleration(self):
                 self.acceleration[0] = self.gravityVec[0]
                 self.acceleration[1] = self.gravityVec[1]
+                self.gravityVec=[0.0, 0.0]
         
-        def tick(self):
-                self.calcGravityVec()
-                self.calcAcceleration()
+        def calcSpeed(self):
                 self.speed[0] = self.speed[0] + self.acceleration[0]
                 self.speed[1] = self.speed[1] + self.acceleration[1]
+        
+        def calcPosition(self):
                 self.position[0] = self.position[0] + self.speed[0]
                 self.position[1] = self.position[1] + self.speed[1]
                 self.rect.center=(int(self.position[0]),int(self.position[1]))
-                self.gravityVec=[0.0, 0.0]
+                
+        def draw(self, screen):
+                self.calcPosition()
+                screen.blit(self.image, self.rect)
+
+        def tick(self):
+                self.calcGravityVec()
+                self.calcAcceleration()
+                self.calcSpeed()
 
 class Vessel(SpaceObject):
         def __init__(self, imageFile):
@@ -64,8 +61,9 @@ class Vessel(SpaceObject):
                 self.enginePower=50
 
         def calcAcceleration(self):
-                self.acceleration[0] = self.gravityVec[0] + self.engineVec[0] * self.enginePower/1000.0
-                self.acceleration[1] = self.gravityVec[1] + self.engineVec[1] * self.enginePower/1000.0
+                SpaceObject.calcAcceleration(self)
+                self.acceleration[0] = self.acceleration[0] + self.engineVec[0] * self.enginePower/1000.0
+                self.acceleration[1] = self.acceleration[1] + self.engineVec[1] * self.enginePower/1000.0
         
 
         def setThrust(self,direction):
@@ -172,17 +170,29 @@ while 1:
                         if event.key==100:
                                 spaceShip.unsetThrust('r')
         
-        spaceShip.tick()
-        moon.tick()
-        blue.tick()
-        sun.tick()
+#spaceShip.tick()
+        thread.start_new(spaceShip.tick, ())       
+        thread.start_new(moon.tick, ())       
+        thread.start_new(blue.tick, ())       
+        thread.start_new(sun.tick, ())       
+       #moon.tick()
+       #blue.tick()
+       #sun.tick()
 
         screen.fill(black)
+        spaceShip.calcPosition()
+        sun.calcPosition()
+        moon.calcPosition()
+        blue.calcPosition()
+#sun.draw(screen)
+       #blue.draw(screen)
+       #moon.draw(screen)
+       #spaceShip.draw(screen)
         screen.blit(sun.image, sun.rect)
         screen.blit(blue.image, blue.rect)
         screen.blit(moon.image, moon.rect)
-        screen.blit(spaceShip.image, spaceShip.rect)
-        
+        screen.blit(spaceShip.image, spaceShip)
+
         absSpeed=round(math.sqrt(math.pow(spaceShip.speed[0],2)+math.pow(spaceShip.speed[1],2))*60,2)
         HUDtext='''Speed: '''+str(absSpeed)+'''\n
 SpaceShip Pos: (''' + str(round(spaceShip.position[0],1)) + "," + str(round(spaceShip.position[1],1)) + ''')\n
