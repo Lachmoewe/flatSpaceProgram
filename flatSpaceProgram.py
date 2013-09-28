@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import sys, pygame, math, thread
+import sys, pygame, math, multiprocessing
 class SpaceObject():
         def __init__(self, imageFile="data/vessel/basic/vessel.png"):
                 self.imageFile=imageFile
@@ -106,20 +106,20 @@ spaceShip=Vessel("data/vessel/basic/vessel.png")
 spaceShip.speed=[0.0, 0.2]
 spaceShip.position=[160.0, 120.0]
 spaceShip.engineVec=[0.0, 0.0]
-spaceShip.enginePower=50
+spaceShip.enginePower=10
 
 moon=Planet("data/planet/moon.png")
 moon.position=[200.0, 500.0]
-moon.speed=[0.325,0.25]
-moon.mass=5
+moon.speed=[-1.1,2.2]
+moon.mass=50
 
 blue=Planet("data/planet/blue.png")
-blue.mass=30
+blue.mass=300
 blue.position=[100.0,400.0]
-blue.speed=[0.0, 0.4]
+blue.speed=[0.0, 1.0]
 
 sun=Planet("data/star/helios1.png")
-sun.mass=100
+sun.mass=1000
 sun.position=[800.0,500.0]
 clock=pygame.time.Clock()
 
@@ -129,6 +129,7 @@ spaceShip.addGravityInfluence(sun)
 moon.addGravityInfluence(blue)
 moon.addGravityInfluence(sun)
 blue.addGravityInfluence(sun)
+blue.addGravityInfluence(moon)
 
 myfont=pygame.font.SysFont("Monospace", 20)
 
@@ -146,6 +147,12 @@ def HUD(text,position,screen):
                 HUD=myfont.render(line,1,(255,0,0))
                 screen.blit(HUD,(position[0],position[1]+offset))
                 offset=offset+15
+
+
+def physicsTick(thing):
+        thing.tick()
+        
+thinglist=[spaceShip,moon,sun,blue]
 while 1:
         for event in pygame.event.get():
                 if event.type == pygame.QUIT: sys.exit()
@@ -170,24 +177,18 @@ while 1:
                         if event.key==100:
                                 spaceShip.unsetThrust('r')
         
-#spaceShip.tick()
-        thread.start_new(spaceShip.tick, ())       
-        thread.start_new(moon.tick, ())       
-        thread.start_new(blue.tick, ())       
-        thread.start_new(sun.tick, ())       
-       #moon.tick()
-       #blue.tick()
-       #sun.tick()
-
-        screen.fill(black)
+       #pool = multiprocessing.Pool()
+       #pool.map_async(physicsTick,thinglist)
+       #pool.close()
+       #pool.join()
+        for thing in thinglist:
+                thing.tick()
         spaceShip.calcPosition()
         sun.calcPosition()
         moon.calcPosition()
         blue.calcPosition()
-#sun.draw(screen)
-       #blue.draw(screen)
-       #moon.draw(screen)
-       #spaceShip.draw(screen)
+        
+        screen.fill(black)
         screen.blit(sun.image, sun.rect)
         screen.blit(blue.image, blue.rect)
         screen.blit(moon.image, moon.rect)
