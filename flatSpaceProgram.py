@@ -95,10 +95,11 @@ class Planet(SpaceObject):
 
 
 pygame.init()
-size = width, height = 1600, 1000
+size = width, height = 1300, 768
 black = 0, 0, 0
 
-screen = pygame.display.set_mode(size)
+screen = pygame.display.set_mode(size, pygame.FULLSCREEN | pygame.DOUBLEBUF | pygame.HWSURFACE)
+#screen = pygame.display.set_mode(size)
 pygame.display.set_caption('flatSpaceProgram')
 
 spaceShip=Vessel("data/vessel/basic/vessel.png")
@@ -166,6 +167,8 @@ while 1:
                                 spaceShip.setThrust('l')
                         if event.key==100:
                                 spaceShip.setThrust('r')
+                        if event.key==pygame.K_ESCAPE:
+                                sys.exit(0)
                 if event.type == pygame.KEYDOWN:
                         print 'Key ' + str(event.key) + ' up'
                         if event.key==119:
@@ -198,8 +201,9 @@ while 1:
         HUDtext='''Speed: '''+str(absSpeed)+'''\n
 SpaceShip Pos: (''' + str(round(spaceShip.position[0],1)) + "," + str(round(spaceShip.position[1],1)) + ''')\n
 blue<->moon: ''' + str(round(getDistance(blue.position,moon.position),0)) + '''\n
-sun<->blue: ''' +str(round(getDistance(sun.position,blue.position),0))
+sun<->blue: ''' +str(round(getDistance(sun.position,blue.position),0)) + '''\n
+FPS: ''' + str(clock.get_fps())
         HUD(HUDtext,[10,10],screen)
-        clock.tick(60)
+        clock.tick(120)
         pygame.display.flip()
 
