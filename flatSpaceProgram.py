@@ -95,7 +95,7 @@ class Planet(SpaceObject):
 
 
 pygame.init()
-size = width, height = 1300, 768
+size = width, height = 1920, 1080
 black = 0, 0, 0
 
 screen = pygame.display.set_mode(size, pygame.FULLSCREEN | pygame.DOUBLEBUF | pygame.HWSURFACE)
