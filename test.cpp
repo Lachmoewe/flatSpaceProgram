@@ -9,6 +9,7 @@
 #include <SDL2/SDL.h>
 #include <GL/gl.h>
 #include <GL/glu.h>
+#include <png.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -16,8 +17,7 @@
 
 static GLboolean should_rotate = GL_TRUE;
 
-static void quit_tutorial( int code )
-{
+static void quit_tutorial( int code ) {
         /*
          * Quit SDL so we can release the fullscreen
          * mode and restore the previous video settings,
@@ -49,11 +49,9 @@ static void handle_key_down( SDL_Keycode* keysym ) {
                 default:
                         break;
         }
-
 }
 
-static void process_events( void )
-{
+static void process_events( void ) {
         /* Our SDL event placeholder. */
         SDL_Event event;
 
@@ -70,13 +68,10 @@ static void process_events( void )
                                 quit_tutorial( 0 );
                                 break;
                 }
-
         }
-
 }
 
-static void draw_screen( void )
-{
+static void draw_screen( void ) {
         /* Our angle of rotation. */
         static float angle = 0.0f;
 
@@ -116,18 +111,21 @@ static void draw_screen( void )
         glMatrixMode( GL_MODELVIEW );
         glLoadIdentity( );
 
-        /* Move down the z-axis. */
-        glTranslatef( 0.0, 0.0, -5.0 );
+        /* Move down the z-axis. */  // not needed becaus of ortho-projection
+        //glTranslatef( 0.0, 0.0, -5.0 );
+        
+        /* change size */
+        glScalef(0.5, 0.5, 0.5);
+
 
         /* Rotate. */
-        glRotatef( angle, 0.0, 1.0, 0.0 );
+        glRotatef( angle, 0.5, 1.0, 0.0 );
 
         if( should_rotate ) {
 
                 if( ++angle > 360.0f ) {
                         angle = 0.0f;
                 }
-
         }
 
         /* Send our triangle data to the pipeline. */
@@ -238,8 +236,7 @@ static void draw_screen( void )
          */
 }
 
-static void setup_opengl( int width, int height )
-{
+static void setup_opengl( int width, int height ) {
         float ratio = (float) width / (float) height;
 
         /* Our shading model--Gouraud (smooth). */
@@ -261,43 +258,14 @@ static void setup_opengl( int width, int height )
          * our viewing volume.
          */
         glMatrixMode( GL_PROJECTION );
-        glLoadIdentity( );
-        /*
-         * EXERCISE:
-         * Replace this with a call to glFrustum.
-         */
-        gluPerspective( 60.0, ratio, 1.0, 1024.0 );
+        glLoadIdentity();
+        
+        /* Orthographic projection yay */
+        glOrtho (-ratio, ratio, -1.0, 1.0, 1.5, 20.0);
+        gluLookAt (0.0, 0.0, 5.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0);
 }
 
-int main( int argc, char* argv[] )
-{
-//      /* Information about the current video settings. */
-//      const SDL_VideoInfo* info = NULL;
-//      /* Dimensions of our window. */
-//      int width = 0;
-//      int height = 0;
-//      /* Color depth in bits of our window. */
-//      int bpp = 0;
-//      /* Flags we will pass into SDL_SetVideoMode. */
-//      int flags = 0;
-
-//      /* First, initialize SDL's video subsystem. */
-//      if( SDL_Init( SDL_INIT_VIDEO ) < 0 ) {
-//              /* Failed, exit. */
-//              fprintf( stderr, "Video initialization failed: %s\n",
-//                              SDL_GetError( ) );
-//              quit_tutorial( 1 );
-//      }
-
-//      /* Let's get some video information. */
-//      info = SDL_GetVideoInfo( );
-
-//      if( !info ) {
-//              /* This should probably never happen. */
-//              fprintf( stderr, "Video query failed: %s\n",
-//                              SDL_GetError( ) );
-//              quit_tutorial( 1 );
-//      }
+int main( int argc, char* argv[] ) {
 
         /*
          * Set our width/height to 1920/1080 (you would
@@ -323,13 +291,13 @@ int main( int argc, char* argv[] )
         window = SDL_CreateWindow("OpenGL Window", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, width, height, flags/*SDL_WINDOW_OPENGL*/);
         if (!window) {
                 fprintf(stderr, "Couldn't create window: %s\n", SDL_GetError());
-                return 0;
+                quit_tutorial(1);
         }
 
         context = SDL_GL_CreateContext(window);
         if (!context) {
                 fprintf(stderr, "Couldn't create context: %s\n", SDL_GetError());
-                return 0;
+                quit_tutorial(1);
         }
 
 //      printf("Red size: %d, Green size: %d, Blue size: %d\n",
@@ -337,55 +305,6 @@ int main( int argc, char* argv[] )
 //                      SDL_GL_GetAttribute(SDL_GL_GREEN_SIZE),
 //                      SDL_GL_GetAttribute(SDL_GL_BLUE_SIZE));
 
-//      /*
-//       * Now, we want to setup our requested
-//       * window attributes for our OpenGL window.
-//       * We want *at least* 5 bits of red, green
-//       * and blue. We also want at least a 16-bit
-//       * depth buffer.
-//       *
-//       * The last thing we do is request a double
-//       * buffered window. '1' turns on double
-//       * buffering, '0' turns it off.
-//       *
-//       * Note that we do not use SDL_DOUBLEBUF in
-//       * the flags to SDL_SetVideoMode. That does
-//       * not affect the GL attribute state, only
-//       * the standard 2D blitting setup.
-//       */
-//      SDL_GL_SetAttribute( SDL_GL_RED_SIZE, 5 );
-//      SDL_GL_SetAttribute( SDL_GL_GREEN_SIZE, 5 );
-//      SDL_GL_SetAttribute( SDL_GL_BLUE_SIZE, 5 );
-//      SDL_GL_SetAttribute( SDL_GL_DEPTH_SIZE, 16 );
-//      SDL_GL_SetAttribute( SDL_GL_DOUBLEBUFFER, 1 );
-
-//      /*
-//       * We want to request that SDL provide us
-//       * with an OpenGL window, in a fullscreen
-//       * video mode.
-//       *
-//       * EXERCISE:
-//       * Make starting windowed an option, and
-//       * handle the resize events properly with
-//       * glViewport.
-//       */
-//      flags = SDL_OPENGL | SDL_FULLSCREEN;
-
-//      /*
-//       * Set the video mode
-//       */
-//      if( SDL_CreateWindow( width, height, bpp, flags ) == 0 ) {
-//              /* 
-//               * This could happen for a variety of reasons,
-//               * including DISPLAY not being set, the specified
-//               * resolution not being available, etc.
-//               */
-//              fprintf( stderr, "Video mode set failed: %s\n",
-//                              SDL_GetError( ) );
-//              quit_tutorial( 1 );
-//      } else {
-//              SDL_GL_CreateContext();
-//      }
 
 //      /*
 //       * At this point, we should have a properly setup
@@ -397,12 +316,17 @@ int main( int argc, char* argv[] )
 //       * Now we want to begin our normal app process--
 //       * an event loop with a lot of redrawing.
 //       */
+        int oldTicks = 0;
+        int FPS = 0;
         while( 1 ) {
                 /* Process incoming events. */
                 process_events( );
                 /* Draw the screen. */
                 draw_screen( );
                 SDL_GL_SwapWindow( window );
+                FPS = 1000/(SDL_GetTicks() - oldTicks);
+                printf("%d\n",FPS);
+                oldTicks = SDL_GetTicks();
         }
 
         /*
