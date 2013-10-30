@@ -1,19 +1,76 @@
-/*
- * SDL OpenGL Tutorial.
- * (c) Michael Vance, 2000
- * briareos@lokigames.com
- *
- * Distributed under terms of the LGPL. 
- */
-
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_image.h>
 #include <GL/gl.h>
 #include <GL/glu.h>
 #include <png.h>
 
 #include <stdio.h>
 #include <stdlib.h>
+using namespace std;
 
+GLuint PNGtoTexture(char file[]) {
+        SDL_Surface *surface;
+        GLenum texture_format;
+        GLint  nOfColors;
+        GLuint texture;
+
+        if ( (surface = IMG_Load(file)) ) { 
+
+                // Check that the image's width is a power of 2
+                if ( (surface->w & (surface->w - 1)) != 0 ) {
+                        printf("warning: imagefile's width is not a power of 2\n");
+                }
+
+                // Also check if the height is a power of 2
+                if ( (surface->h & (surface->h - 1)) != 0 ) {
+                        printf("warning: imagefile's height is not a power of 2\n");
+                }
+
+                // get the number of channels in the SDL surface
+                nOfColors = surface->format->BytesPerPixel;
+                if (nOfColors == 4)     // contains an alpha channel
+                {
+                        if (surface->format->Rmask == 0x000000ff)
+                                texture_format = GL_RGBA;
+                        //else
+                        //texture_format = GL_BGRA;
+                } else if (nOfColors == 3)     // no alpha channel
+                {
+                        if (surface->format->Rmask == 0x000000ff)
+                                texture_format = GL_RGB;
+                        //else
+                        //texture_format = GL_BGR;
+                } else {
+                        printf("warning: the image is not truecolor..  this will probably break\n");
+                        // this error should not go unhandled
+                }
+
+                // Have OpenGL generate a texture object handle for us
+                glGenTextures( 1, &texture );
+
+                // Bind the texture object
+                glBindTexture( GL_TEXTURE_2D, texture );
+
+                // Set the texture's stretching properties
+                glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
+                glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+
+                // Edit the texture object's image data using the information SDL_Surface gives us
+                glTexImage2D( GL_TEXTURE_2D, 0, nOfColors, surface->w, surface->h, 0,
+                                texture_format, GL_UNSIGNED_BYTE, surface->pixels );
+        } 
+        else {
+                printf("SDL could not load %s: %s\n",file, SDL_GetError());
+                SDL_Quit();
+                //return 1;
+        }    
+
+        // Free the SDL_Surface only if it was successfully created
+        if ( surface ) { 
+                SDL_FreeSurface( surface );
+        }
+        return texture;
+}
 
 static GLboolean should_rotate = GL_TRUE;
 
@@ -113,7 +170,7 @@ static void draw_screen( void ) {
 
         /* Move down the z-axis. */  // not needed becaus of ortho-projection
         //glTranslatef( 0.0, 0.0, -5.0 );
-        
+
         /* change size */
         glScalef(0.5, 0.5, 0.5);
 
@@ -253,16 +310,35 @@ static void setup_opengl( int width, int height ) {
         /* Setup our viewport. */
         glViewport( 0, 0, width, height );
 
-        /*
-         * Change to the projection matrix and set
-         * our viewing volume.
-         */
         glMatrixMode( GL_PROJECTION );
         glLoadIdentity();
-        
+
         /* Orthographic projection yay */
         glOrtho (-ratio, ratio, -1.0, 1.0, 1.5, 20.0);
-        gluLookAt (0.0, 0.0, 5.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0);
+        gluLookAt (0.0, 0.0, 5.0, 
+                   0.5, 0.5, 0.0, 
+                   0.0, 1.0, 0.0);
+}
+void texPos( GLuint texture, float x, float y, float size) {
+        /*float left, right, top, bottom;
+        left = x + size;
+        right = x - size;
+        top = y + size;
+        bottom = y - size;*/
+        glEnable( GL_TEXTURE_2D );
+        glBindTexture(GL_TEXTURE_2D, texture);
+        glBegin( GL_QUADS );
+        /*
+        glTexCoord2d(left, top);    glVertex2d(left, top);
+        glTexCoord2d(left, bottom); glVertex2d(left, bottom);
+        glTexCoord2d(right,bottom); glVertex2d(right,bottom);
+        glTexCoord2d(right,top);    glVertex2d(right,top);*/
+        
+        glTexCoord2d(0.0,0.0); glVertex2d(0.0,0.0);
+        glTexCoord2d(1.0,0.0); glVertex2d(1.0,0.0);
+        glTexCoord2d(1.0,1.0); glVertex2d(1.0,1.0);
+        glTexCoord2d(0.0,1.0); glVertex2d(0.0,1.0);
+        glEnd();
 }
 
 int main( int argc, char* argv[] ) {
@@ -279,7 +355,7 @@ int main( int argc, char* argv[] ) {
         int width = 1920;
         int height = 1080;
         int flags = SDL_WINDOW_OPENGL | SDL_WINDOW_FULLSCREEN;
-        
+
         SDL_Window *window;
         SDL_GLContext context;
 
@@ -300,33 +376,36 @@ int main( int argc, char* argv[] ) {
                 quit_tutorial(1);
         }
 
-//      printf("Red size: %d, Green size: %d, Blue size: %d\n",
-//                      SDL_GL_GetAttribute(SDL_GL_RED_SIZE),
-//                      SDL_GL_GetAttribute(SDL_GL_GREEN_SIZE),
-//                      SDL_GL_GetAttribute(SDL_GL_BLUE_SIZE));
-
-
-//      /*
-//       * At this point, we should have a properly setup
-//       * double-buffered window for use with OpenGL.
-//       */
         setup_opengl( width, height );
 
-//      /*
-//       * Now we want to begin our normal app process--
-//       * an event loop with a lot of redrawing.
-//       */
         int oldTicks = 0;
         int FPS = 0;
+        GLuint blue_tex = PNGtoTexture("data/planet/blue_128x128.png");
+        float counter = 0.0;
         while( 1 ) {
-                /* Process incoming events. */
                 process_events( );
-                /* Draw the screen. */
-                draw_screen( );
+                //draw_screen( );
+                glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+
+                glMatrixMode( GL_MODELVIEW );
+                glLoadIdentity( );
+
+                texPos(blue_tex, 0, 0, 1);
+
+
+                glMatrixMode( GL_PROJECTION );
+                glLoadIdentity();
+
+                /*gluLookAt (0.0, 0.0, 5.0, 
+                           0.5, 0.5, 0.0, 
+                           0.0, 1.0, 0.0);
+*/
                 SDL_GL_SwapWindow( window );
                 FPS = 1000/(SDL_GetTicks() - oldTicks);
-                printf("%d\n",FPS);
+                //printf("%d\n",FPS);
                 oldTicks = SDL_GetTicks();
+                printf("%f\n", counter);
+                if (counter >= 1) {counter = 0.0;} else {counter = counter+0.001;}
         }
 
         /*
